@@ -1,0 +1,99 @@
+//***Liquid Crystal Display***// #include<LiquidCrystal.h> LiquidCrystal lcd(13,12,11,10,9,8); const int trigPin = 7;
+const int echoPin = 6; long duration;
+int d;
+//***Input and Output Setup***//
+void setup()
+{ lcd.begin(16,2); Serial.begin(9600); pinMode(trigPin,OUTPUT); pinMode(echoPin,INPUT); pinMode(2,INPUT); //IR Sensor 1 pinMode(3,INPUT); //IR Sensor 2 pinMode(4,OUTPUT); //Buzzer pinMode(5,OUTPUT); // Relay lcd.setCursor(0,0);
+lcd.print(" Smart"); lcd.setCursor(0,1); lcd.print("Railway System");
+ 
+delay(2000); lcd.clear();
+}
+//***Ultrasonic Sensor***//
+void loop()
+{ 
+digitalWrite(trigPin, LOW); 
+delayMicroseconds(2); digitalWrite(trigPin, HIGH); delayMicroseconds(10); digitalWrite(trigPin, LOW); duration = pulseIn(echoPin, HIGH); d= duration*0.034/2; Serial.print('Z');
+Serial.print(d); lcd.setCursor(0,0); lcd.print("D:"); lcd.print(d); lcd.print(" "); delay(100);
+if(d < 10)
+{
+lcd.setCursor(6,0); lcd.print("Object-DET"); Serial.print('U'); digitalWrite(4,HIGH); delay(300);
+ 
+}
+else
+{
+lcd.setCursor(6,0); lcd.print("Object-NO ");
+Serial.print('u'); digitalWrite(4,LOW); delay(300);
+}
+//***IR Sensor***//
+int a=digitalRead(2); int b=digitalRead(3);
+if((a==HIGH) || (b==HIGH))
+{
+lcd.setCursor(0,1); lcd.print("Track-FAULT	"); Serial.print('I'); digitalWrite(5,LOW); delay(300); digitalWrite(4,HIGH);
+}
+else
+{
+lcd.setCursor(0,1); lcd.print("Track-NORMAL	"); Serial.print('i');
+ 
+digitalWrite(5,HIGH); delay(300);
+digitalWrite(4,LOW);
+}
+}
+
+
+//***IoT CODE***//
+#define BLYNK_TEMPLATE_ID "TMPL3xdHDqPIA"
+#define BLYNK_TEMPLATE_NAME "Smart Railway System" #defineBLYNK_AUTH_TOKEN "pd5t6UfQ6_dbBfBCfRUDWPQyVSyODxOA"
+/* Comment this out to disable prints and save space */ #define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h> #include <BlynkSimpleEsp8266.h>
+// Your WiFi credentials.
+// Set password to "" for open networks.
+//*** Network Setup ***//
+char ssid[] = "Projectiot";// Name of the open network char pass[] = "";
+//Change the virtual pins according the rooms #define VPIN_1	V0 // obstacle detected #define VPIN_2	V1 // obstacle distance #define VPIN_3	V2 // IR Sensor BLYNK_CONNECTED()
+{
+Blynk.syncVirtual(VPIN_1);
+ 
+Blynk.syncVirtual(VPIN_2); Blynk.syncVirtual(VPIN_3);
+}
+void setup()
+{
+// Debug console Serial.begin(9600);
+Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+// You can also specify server:
+//Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass, "blynk.cloud", 80);
+//Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass, IPAddress(192,168,1,100), 8080);
+}
+void loop()
+{
+Blynk.run();
+if (Serial.available()>0)
+{
+char a=Serial.read();
+//	Serial.print(a);
+//*** Object in Track***//
+if(a=='U')
+{
+Blynk.virtualWrite(VPIN_1,HIGH);
+}
+//*** No object in Track***//
+ 
+if(a=='u')
+{
+Blynk.virtualWrite(VPIN_1,LOW);
+}
+if(a=='Z')
+{
+int d=Serial.parseInt(); Blynk.virtualWrite(VPIN_2,d);
+}
+//*** Track Fault***//
+if(a=='I')
+{
+Blynk.virtualWrite(VPIN_3,HIGH);
+}
+//***Track normal***//
+if(a=='i')
+{
+Blynk.virtualWrite(VPIN_3,LOW);
+}
+}
+}
